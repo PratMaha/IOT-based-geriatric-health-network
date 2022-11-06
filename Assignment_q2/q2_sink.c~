@@ -1,0 +1,34 @@
+#include "contiki.h"
+#include "net/rime/rime.h"
+#include "sys/node-id.h"
+#include "dev/button-sensor.h"
+#include "sys/clock.h"
+#include "dev/leds.h"
+#include "sys/autostart.h"
+#include <stdio.h>
+static void
+recv_uc(struct unicast_conn *c, const linkaddr_t *from)
+{
+	printf("Sink saving data from cluster head%d.%d\n",
+	 from->u8[0], from->u8[1]);
+}
+static const struct unicast_callbacks unicast_callbacks = {recv_uc};
+static struct unicast_conn uc1;
+PROCESS(sink, "Sink");
+AUTOSTART_PROCESSES(&sink);
+PROCESS_THREAD(sink, ev, data)
+{
+PROCESS_EXITHANDLER(unicast_close(&uc1));
+PROCESS_BEGIN();
+ unicast_open(&uc1, 145, &unicast_callbacks);
+while(1){
+    static struct etimer et;
+    linkaddr_t addr;
+    etimer_set(&et, 360*RTIMER_ARCH_SECOND);
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    addr.u8[0] = 20;
+    addr.u8[1] = 0;
+    packetbuf_copyfrom("Let's continue",1);
+}
+PROCESS_END();
+}
